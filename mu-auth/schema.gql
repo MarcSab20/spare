@@ -1,0 +1,76 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuthorizationResponseDto {
+  """Indique si l'accès est autorisé"""
+  allowed: Boolean!
+
+  """Raison de la décision"""
+  reason: String
+}
+
+type AuthorizationLogDto {
+  """Identifiant de l'utilisateur"""
+  userId: ID!
+
+  """Identifiant de la ressource"""
+  resourceId: ID!
+
+  """Type de ressource"""
+  resourceType: String!
+
+  """Action demandée"""
+  action: String!
+
+  """Décision d'autorisation"""
+  allowed: Boolean!
+
+  """Raison de la décision"""
+  reason: String
+
+  """Contexte supplémentaire"""
+  context: JSONObject
+
+  """Timestamp de la décision"""
+  timestamp: String!
+}
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
+
+type Query {
+  checkAccess(input: AuthorizationRequestInput!): AuthorizationResponseDto!
+  getAuthorizationHistory(userId: String, resourceId: String, limit: Float = 100, offset: Float = 0): [AuthorizationLogDto!]!
+}
+
+input AuthorizationRequestInput {
+  """Identifiant de l'utilisateur"""
+  userId: ID!
+
+  """Identifiant de la ressource"""
+  resourceId: ID!
+
+  """Type de ressource"""
+  resourceType: String!
+
+  """Action demandée"""
+  action: String!
+
+  """Attributs utilisateur supplémentaires"""
+  userAttributes: JSONObject
+
+  """Rôles de l'utilisateur"""
+  userRoles: [String!]
+
+  """IDs des organisations de l'utilisateur"""
+  organizationIds: [String!]
+
+  """Attributs ressource supplémentaires"""
+  resourceAttributes: JSONObject
+
+  """Contexte supplémentaire"""
+  context: JSONObject
+}

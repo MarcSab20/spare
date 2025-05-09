@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Open Policy Agent (OPA)
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "8181:8181"
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--log-level=debug"
+      - "--set=decision_logs.console=true"
+      - "/policies/authz.rego"
+    volumes:
+      - ./opa-policies/policies:/policies
+    restart: unless-stopped
+    networks:
+      - mu-network
+
+  # Redis pour le cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --protected-mode no
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - mu-network
+ 
+
+networks:
+  mu-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
