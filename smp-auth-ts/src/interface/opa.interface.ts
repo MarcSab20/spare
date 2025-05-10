@@ -13,13 +13,13 @@ export interface OPAConfig {
     };
     resource: {
       id: string;          
-      type: string;        // ('Application', 'Asset')
+      type: string;        
       attributes?: Record<string, any>; 
-      owner_id?: string;    // (optionnel)
-      organization_id?: string; // (optionnel)
+      owner_id?: string;    
+      organization_id?: string;
     };
-    action: string;         // 
-    context?: Record<string, any>; // Contexte supplémentaire (optionnel)
+    action: string;        
+    context?: Record<string, any>; 
   }
   
   /**
@@ -27,7 +27,7 @@ export interface OPAConfig {
    */
   export interface OPAResult {
     allow: boolean;         
-    reason?: string;        //(optionnel)
+    reason?: string;        
   }
   
   /**

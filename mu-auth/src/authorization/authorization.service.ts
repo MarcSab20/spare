@@ -39,10 +39,10 @@ export class AuthorizationService implements OnModuleInit, OnModuleDestroy {
    */
   private setupEnvironment() {
     setEnv({
-      KEYCLOAK_URL: this.configService.get<string>('KEYCLOAK_URL', 'http://localhost:8080/auth'),
-      KEYCLOAK_REALM: this.configService.get<string>('KEYCLOAK_REALM', 'master'),
-      KEYCLOAK_CLIENT_ID: this.configService.get<string>('KEYCLOAK_CLIENT_ID', 'admin-cli'),
-      KEYCLOAK_CLIENT_SECRET: this.configService.get<string>('KEYCLOAK_CLIENT_SECRET', 'changeme'),
+     // KEYCLOAK_URL: this.configService.get<string>('KEYCLOAK_URL', 'http://localhost:8080/auth'),
+     // KEYCLOAK_REALM: this.configService.get<string>('KEYCLOAK_REALM', 'master'),
+     // KEYCLOAK_CLIENT_ID: this.configService.get<string>('KEYCLOAK_CLIENT_ID', 'admin-cli'),
+     // KEYCLOAK_CLIENT_SECRET: this.configService.get<string>('KEYCLOAK_CLIENT_SECRET', 'changeme'),
       OPA_URL: this.configService.get<string>('OPA_URL', 'http://localhost:8181'),
       OPA_POLICY_PATH: this.configService.get<string>('OPA_POLICY_PATH', '/v1/data/authz/decision'),
       REDIS_HOST: this.configService.get<string>('REDIS_HOST', 'localhost'),

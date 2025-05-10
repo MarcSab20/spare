@@ -1,6 +1,7 @@
-
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { AuthorizationModule } from './authorization/authorization.module.js';
+import { AuthModule } from './auth/auth.module.js'; // Nouveau module
 import { join } from 'path';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloFederationDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -44,6 +45,7 @@ import { redisStore } from 'cache-manager-redis-store';
     }),
     
     AuthorizationModule,
+    AuthModule, // Ajout du nouveau module
   ],
   providers: [ConfigService],
 })

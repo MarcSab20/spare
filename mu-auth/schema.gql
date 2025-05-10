@@ -41,9 +41,25 @@ The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](
 """
 scalar JSONObject
 
+type LoginResponseDto {
+  accessToken: String!
+  refreshToken: String!
+  tokenType: String!
+}
+
+type TokenValidationDto {
+  valid: Boolean!
+  userId: String
+  email: String
+  givenName: String
+  familyName: String
+  roles: [String!]
+}
+
 type Query {
   checkAccess(input: AuthorizationRequestInput!): AuthorizationResponseDto!
   getAuthorizationHistory(userId: String, resourceId: String, limit: Float = 100, offset: Float = 0): [AuthorizationLogDto!]!
+  validateToken(token: String!): TokenValidationDto!
 }
 
 input AuthorizationRequestInput {
@@ -73,4 +89,18 @@ input AuthorizationRequestInput {
 
   """Contexte supplémentaire"""
   context: JSONObject
+}
+
+type Mutation {
+  login(input: LoginInputDto!): LoginResponseDto!
+  refreshToken(input: RefreshTokenInputDto!): LoginResponseDto!
+}
+
+input LoginInputDto {
+  username: String!
+  password: String!
+}
+
+input RefreshTokenInputDto {
+  refreshToken: String!
 }
