@@ -8,9 +8,6 @@ import { AuthorizationLogDto } from './dto/authorization-log.dto.js';
 export class AuthorizationResolver {
   constructor(private readonly authService: AuthorizationService) {}
 
-  /**
-   * Vérifie si une action est autorisée pour un utilisateur sur une ressource
-   */
   @Query(() => AuthorizationResponseDto)
   async checkAccess(
     @Args('input') input: AuthorizationRequestInput,
@@ -20,61 +17,37 @@ export class AuthorizationResolver {
     const token = authHeader ? authHeader.replace('Bearer ', '') : undefined;
     
     if (token) {
-      const result = await this.authService.checkAccessWithToken(
-        token,
-        input.resourceId,
-        input.resourceType,
-        input.action,
-        input.resourceAttributes,
-        input.context
-      );
-      
-      return {
-        allowed: result.allowed,
-        reason: result.reason
-      };
+      // Si un token est fourni, l'utiliser pour l'authentification
+      return this.authService.checkAccessWithToken(token, input);
     }
     
-    return this.authService.checkAccessWithUserId(
-      input.userId,
-      input.resourceId,
-      input.resourceType,
-      input.action,
-      input.userAttributes,
-      input.resourceAttributes,
-      input.context
-    );
+    // Sinon, utiliser directement l'entrée OPA
+    return this.authService.checkAccess(input);
   }
-  /**
-   * journalisation
-   */
+
   @Query(() => [AuthorizationLogDto])
-async getAuthorizationHistory(
-  @Args('userId', { nullable: true }) userId?: string,
-  @Args('resourceId', { nullable: true }) resourceId?: string,
-  @Args('limit', { nullable: true, defaultValue: 100 }) limit?: number,
-  @Args('offset', { nullable: true, defaultValue: 0 }) offset?: number
-): Promise<AuthorizationLogDto[]> {
-  const rawData = await this.authService.getAuthorizationHistory(
-    userId,
-    resourceId,
-    limit,
-    offset
-  );
-  // Transforme les données en instances de AuthorizationLogDto
-  return rawData.map(record => {
-    const dto = new AuthorizationLogDto();
-    dto.userId = record.userId;
-    dto.resourceId = record.resourceId;
-    dto.resourceType = record.resourceType;
-    dto.action = record.action;
-    dto.allowed = record.allowed;
-    dto.reason = record.reason;
-    dto.context = record.context;
-    dto.timestamp = record.timestamp;
-    return dto;
-  });
-}
-
-
+  async getAuthorizationHistory(
+    @Args('userId', { nullable: true }) userId?: string,
+    @Args('resourceId', { nullable: true }) resourceId?: string,
+    @Args('limit', { nullable: true, defaultValue: 100 }) limit?: number,
+    @Args('offset', { nullable: true, defaultValue: 0 }) offset?: number
+  ): Promise<AuthorizationLogDto[]> {
+    const logs = await this.authService.getAuthorizationHistory(
+      userId,
+      resourceId,
+      limit,
+      offset
+    );
+    
+    return logs.map(log => ({
+      userId: log.userId,
+      resourceId: log.resourceId,
+      resourceType: log.resourceType,
+      action: log.action,
+      allow: log.allow,
+      reason: log.reason,
+      context: log.context,
+      timestamp: log.timestamp
+    }));
+  }
 }

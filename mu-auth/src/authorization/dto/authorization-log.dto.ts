@@ -16,12 +16,12 @@ export class AuthorizationLogDto {
   action: string;
   
   @Field(() => Boolean, { description: "Décision d'autorisation" })
-  allowed: boolean;
+  allow: boolean;
   
   @Field(() => String, { nullable: true, description: "Raison de la décision" })
   reason?: string;
   
-  @Field(() => GraphQLJSONObject, { nullable: true, description: "Contexte supplémentaire" })
+  @Field(() => GraphQLJSONObject, { nullable: true, description: "Contexte de la demande" })
   context?: Record<string, any>;
   
   @Field(() => String, { description: "Timestamp de la décision" })

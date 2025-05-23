@@ -31,9 +31,24 @@ export class OPAClientImpl implements OPAClient {
       
       const response = await this.axiosInstance.post(this.config.policyPath, payload);
       
-      const result = response.data.result;
+      console.log("Réponse OPA complète:", JSON.stringify(response.data, null, 2));
       
-    
+      // Extrait le résultat correct de la réponse OPA
+      let result;
+      
+      if (response.data && response.data.result) {
+        // Vérifier si la décision est dans result.decision
+        if (response.data.result.decision) {
+          result = response.data.result.decision;
+          console.log("Décision extraite de result.decision:", result);
+        } 
+        // Sinon, utiliser directement result
+        else {
+          result = response.data.result;
+          console.log("Utilisation directe de result:", result);
+        }
+      }
+      
       if (typeof result === 'object' && result !== null && 'allow' in result) {
         return {
           allow: Boolean(result.allow),
@@ -57,7 +72,6 @@ export class OPAClientImpl implements OPAClient {
   }
   
   /**
-   * Met à jour une politique dans OPA
    * @param policyId Identifiant de la politique (chemin relatif)
    * @param policy Contenu de la politique (code Rego)
    */

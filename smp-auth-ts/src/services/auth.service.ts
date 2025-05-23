@@ -28,45 +28,23 @@ export class AuthService {
     this.redis = new RedisClientImpl(this.config.redis);
   }
   
-  /**
-   * Récupère le client Keycloak
-   */
   getKeycloakClient(): KeycloakClient {
     return this.keycloak;
   }
   
-  /**
-   * Récupère le client OPA
-   */
   getOPAClient(): OPAClient {
     return this.opa;
   }
   
-  /**
-   * Récupère le client Redis
-   */
   getRedisClient(): RedisClient {
     return this.redis;
   }
   
-  /**
-   * Construit une clé de cache pour les décisions d'autorisation
-   * @private
-   */
   private buildCacheKey(userId: string, resourceId: string, resourceType: string, action: string): string {
     const data = { userId, resourceId, resourceType, action };
     return `auth:${createHash('md5').update(JSON.stringify(data)).digest('hex')}`;
   }
   
-  /**
-   * Vérifie si une action est autorisée pour un utilisateur sur une ressource
-   * @param token Token JWT de l'utilisateur
-   * @param resourceId ID de la ressource
-   * @param resourceType Type de ressource
-   * @param action Action demandée
-   * @param cacheResults Mettre en cache les résultats (par défaut: true)
-   * @param ttl Durée de vie du cache en secondes (par défaut: 300)
-   */
   async checkPermission(
     token: string, 
     resourceId: string, 

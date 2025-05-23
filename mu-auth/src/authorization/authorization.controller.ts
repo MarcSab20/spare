@@ -1,8 +1,7 @@
-
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { AuthorizationService } from './authorization.service.js';
-import { AuthorizationRequest } from './interfaces/authorization-request.interface.js';
+import { OPAInput } from 'smp-auth-ts';
 
 @Controller()
 export class AuthorizationController {
@@ -10,40 +9,45 @@ export class AuthorizationController {
 
   constructor(private readonly authService: AuthorizationService) {}
 
-  /**
-   * Vérifie si une action est autorisée (gRPC)
-   */
   @GrpcMethod('AuthorizationService', 'CheckAccess')
-  async checkAccess(request: AuthorizationRequest) {
+  async checkAccess(request: any) {
     this.logger.debug(`gRPC CheckAccess request: ${JSON.stringify(request)}`);
     
     try {
-      const result = await this.authService.checkAccessWithUserId(
-        request.userId,
-        request.resourceId,
-        request.resourceType,
-        request.action,
-        request.userAttributes,
-        request.resourceAttributes,
-        request.context
-      );
+      // Transformer la requête gRPC en entrée OPA
+      const opaInput: OPAInput = {
+        user: {
+          id: request.userId,
+          roles: request.userRoles || [],
+          organization_ids: request.organizationIds,
+          attributes: this.parseAttributes(request.userAttributes)
+        },
+        resource: {
+          id: request.resourceId,
+          type: request.resourceType,
+          owner_id: request.resourceOwnerId,
+          organization_id: request.resourceOrganizationId,
+          attributes: this.parseAttributes(request.resourceAttributes)
+        },
+        action: request.action,
+        context: this.parseAttributes(request.context)
+      };
+      
+      const result = await this.authService.checkAccess(opaInput);
       
       return {
-        allowed: result.allowed,
+        allow: result.allow,
         reason: result.reason || ''
       };
     } catch (error) {
       this.logger.error(`Error in CheckAccess: ${error instanceof Error ? error.message : String(error)}`);
       return {
-        allowed: false,
+        allow: false,
         reason: 'Internal error during authorization check'
       };
     }
   }
 
-  /**
-   * Valide un token JWT et récupère les informations utilisateur
-   */
   @GrpcMethod('AuthorizationService', 'ValidateToken')
   async validateToken(request: { token: string }) {
     try {
@@ -51,8 +55,6 @@ export class AuthorizationController {
       return {
         userId: userInfo.sub,
         email: userInfo.email || '',
-        givenName: userInfo.given_name || '',
-        familyName: userInfo.family_name || '',
         roles: userInfo.roles || [],
         attributes: this.flattenAttributes(userInfo.attributes || {}),
         organizationIds: userInfo.organization_ids || []
@@ -63,59 +65,45 @@ export class AuthorizationController {
     }
   }
 
-  /**
-   * Récupère les informations d'un utilisateur par ID
-   */
-  @GrpcMethod('AuthorizationService', 'GetUserInfo')
-  async getUserInfo(request: { userId: string }) {
+  @GrpcMethod('AuthorizationService', 'UpdatePolicy')
+  async updatePolicy(request: { policyId: string; policyContent: string }) {
     try {
-      const userInfo = await this.authService.getUserInfo(request.userId);
-      return {
-        userId: userInfo.sub,
-        email: userInfo.email || '',
-        givenName: userInfo.given_name || '',
-        familyName: userInfo.family_name || '',
-        roles: userInfo.roles || [],
-        attributes: this.flattenAttributes(userInfo.attributes || {}),
-        organizationIds: userInfo.organization_ids || []
-      };
+      await this.authService.updatePolicy(request.policyId, request.policyContent);
+      return { success: true };
     } catch (error) {
-      this.logger.error(`Error in GetUserInfo: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error in UpdatePolicy: ${error instanceof Error ? error.message : String(error)}`);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  @GrpcMethod('AuthorizationService', 'GetPolicy')
+  async getPolicy(request: { policyId: string }) {
+    try {
+      const policy = await this.authService.getPolicy(request.policyId);
+      return { policy };
+    } catch (error) {
+      this.logger.error(`Error in GetPolicy: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
 
-  /**
-   * Récupère les rôles d'un utilisateur
-   */
-  @GrpcMethod('AuthorizationService', 'GetUserRoles')
-  async getUserRoles(request: { userId: string }) {
-    try {
-      const roles = await this.authService.getUserRoles(request.userId);
-      return { roles };
-    } catch (error) {
-      this.logger.error(`Error in GetUserRoles: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
+  // Méthodes utilitaires
+  private parseAttributes(attributes: Record<string, string> = {}): Record<string, any> {
+    const result: Record<string, any> = {};
+    
+    for (const [key, value] of Object.entries(attributes)) {
+      try {
+        // Essayer de parser les valeurs JSON
+        result[key] = JSON.parse(value);
+      } catch {
+        // Si ce n'est pas du JSON, utiliser la valeur telle quelle
+        result[key] = value;
+      }
     }
+    
+    return result;
   }
 
-  /**
-   * Invalide le cache pour un utilisateur
-   */
-  @GrpcMethod('AuthorizationService', 'InvalidateUserCache')
-  async invalidateUserCache(request: { userId: string }) {
-    try {
-      await this.authService.invalidateUserCache(request.userId);
-      return { success: true, message: 'Cache invalidé avec succès' };
-    } catch (error) {
-      this.logger.error(`Error in InvalidateUserCache: ${error instanceof Error ? error.message : String(error)}`);
-      return { success: false, message: `Erreur: ${error instanceof Error ? error.message : String(error)}` };
-    }
-  }
-
-  /**
-   * Convertit les attributs utilisateur en un format plat pour gRPC
-   */
   private flattenAttributes(attributes: Record<string, any>): Record<string, string> {
     const result: Record<string, string> = {};
     
