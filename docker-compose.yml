@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  # Open Policy Agent (OPA)
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "8181:8181"
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--log-level=debug"
+      - "--set=decision_logs.console=true"
+      - "/policies/authz.rego"
+    volumes:
+      - ./opa-policies/policies:/policies
+    restart: unless-stopped
+    networks:
+      - mu-network
+
+  # Redis pour le cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --protected-mode no
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - mu-network
+  
+  # PostgreSQL pour Keycloak
+  postgres:
+    image: postgres:15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "5432:5432"
+    networks:
+      - mu-network
+
+  # Keycloak - Serveur d'identité
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+      KC_HTTP_ENABLED: 'true'
+      KC_HOSTNAME_STRICT: 'false'
+    command: 
+      - start-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - mu-network
+
+  # Apollo Gateway
+  apollo-gateway:
+    build:
+      context: ./federation/apollo-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+    environment:
+      - PORT=4000
+      - METRICS_PORT=4001
+      - NODE_ENV=development
+      - ORGANIZATION_SERVICE_URL=http://host.docker.internal:4001/graphql
+      - AUTH_SERVICE_URL=http://host.docker.internal:4002/graphql
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - mu-network
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # KrakenD Gateway
+  krakend:
+    image: devopsfaith/krakend:latest
+    volumes:
+      - ./federation/krakend:/etc/krakend
+    ports:
+      - "8090:8080"
+      - "8091:8091"
+    depends_on:
+      - apollo-gateway
+    restart: unless-stopped
+    command: ["run", "-c", "/etc/krakend/krakend.json"]
+    networks:
+      - mu-network
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    depends_on:
+      - krakend
+      - apollo-gateway
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Jaeger pour le tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "14268:14268"
+      - "16686:16686"
+      - "14250:14250"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=memory
+    restart: unless-stopped
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter pour les métriques système
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+networks:
+  mu-network:
+    driver: bridge
+  monitoring:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
+  keycloak-data:
+  prometheus-data:

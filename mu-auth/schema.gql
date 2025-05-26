@@ -1,0 +1,390 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuthorizationResponseDto {
+  """Indique si l'accès est autorisé"""
+  allow: Boolean!
+
+  """Raison de la décision"""
+  reason: String
+}
+
+type AuthorizationLogDto {
+  """Identifiant de l'utilisateur"""
+  userId: ID!
+
+  """Identifiant de la ressource"""
+  resourceId: ID!
+
+  """Type de ressource"""
+  resourceType: String!
+
+  """Action demandée"""
+  action: String!
+
+  """Décision d'autorisation"""
+  allow: Boolean!
+
+  """Raison de la décision"""
+  reason: String
+
+  """Contexte de la demande"""
+  context: JSONObject
+
+  """Timestamp de la décision"""
+  timestamp: String!
+}
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
+
+type LoginResponseDto {
+  """Token d'accès JWT"""
+  accessToken: String!
+
+  """Token de rafraîchissement"""
+  refreshToken: String
+
+  """Type de token (Bearer)"""
+  tokenType: String!
+
+  """Durée de validité en secondes"""
+  expiresIn: Int
+
+  """Scope du token"""
+  scope: String
+
+  """ID de session"""
+  sessionId: String
+}
+
+type TokenValidationDto {
+  """Indique si le token est valide"""
+  valid: Boolean!
+
+  """ID utilisateur"""
+  userId: String
+
+  """Email de l'utilisateur"""
+  email: String
+
+  """Prénom"""
+  givenName: String
+
+  """Nom de famille"""
+  familyName: String
+
+  """Rôles de l'utilisateur"""
+  roles: [String!]
+}
+
+type UserAttributesDto {
+  """Département"""
+  department: String
+
+  """Niveau d'habilitation"""
+  clearanceLevel: Float
+
+  """Date d'expiration du contrat"""
+  contractExpiryDate: String
+
+  """ID du manager"""
+  managerId: String
+
+  """Titre du poste"""
+  jobTitle: String
+
+  """Unité d'affaires"""
+  businessUnit: String
+
+  """Juridiction territoriale"""
+  territorialJurisdiction: String
+
+  """Expertise technique"""
+  technicalExpertise: String
+
+  """Niveau hiérarchique"""
+  hierarchyLevel: Float
+
+  """Lieu de travail"""
+  workLocation: String
+
+  """Statut de vérification"""
+  verificationStatus: String
+
+  """Type d'emploi"""
+  employmentType: String
+
+  """Score de risque"""
+  riskScore: Float
+
+  """Certifications"""
+  certifications: [String!]
+
+  """Prénom"""
+  firstName: String
+
+  """Nom de famille"""
+  lastName: String
+
+  """Numéro de téléphone"""
+  phoneNumber: String
+
+  """Nationalité"""
+  nationality: String
+
+  """Date de naissance"""
+  dateOfBirth: String
+
+  """Genre"""
+  gender: String
+
+  """Attributs supplémentaires"""
+  additionalAttributes: JSONObject
+}
+
+type UserInfoDto {
+  """Identifiant utilisateur (sub)"""
+  sub: String!
+
+  """Email"""
+  email: String
+
+  """Prénom"""
+  given_name: String
+
+  """Nom de famille"""
+  family_name: String
+
+  """Nom d'utilisateur préféré"""
+  preferred_username: String
+
+  """Rôles de l'utilisateur"""
+  roles: [String!]!
+
+  """IDs des organisations"""
+  organization_ids: [String!]
+
+  """État de l'utilisateur"""
+  state: String
+
+  """Attributs utilisateur"""
+  attributes: UserAttributesDto
+
+  """Accès aux ressources par client"""
+  resource_access: JSONObject
+
+  """Accès au realm"""
+  realm_access: JSONObject
+}
+
+type EnrichedTokenValidationDto {
+  """Indique si le token est valide"""
+  valid: Boolean!
+
+  """Informations utilisateur complètes"""
+  userInfo: UserInfoDto
+
+  """ID utilisateur"""
+  userId: String
+
+  """Email"""
+  email: String
+
+  """Prénom"""
+  givenName: String
+
+  """Nom de famille"""
+  familyName: String
+
+  """Rôles"""
+  roles: [String!]
+
+  """Données brutes Keycloak"""
+  rawKeycloakData: JSONObject
+}
+
+type ConnectionTestDto {
+  """Indique si la connexion est établie"""
+  connected: Boolean!
+
+  """Informations sur la connexion"""
+  info: String
+
+  """Message d'erreur"""
+  error: String
+
+  """Latence en millisecondes"""
+  latency: Float
+
+  """Détails supplémentaires"""
+  details: JSONObject
+}
+
+type AuthenticationLogDto {
+  """ID utilisateur"""
+  userId: String!
+
+  """Action effectuée"""
+  action: String!
+
+  """Succès de l'action"""
+  success: Boolean!
+
+  """Timestamp"""
+  timestamp: String!
+
+  """Adresse IP"""
+  ip: String
+
+  """User Agent"""
+  userAgent: String
+
+  """Message d'erreur"""
+  error: String
+
+  """Détails supplémentaires"""
+  details: JSONObject
+}
+
+type Query {
+  checkAccess(input: AuthorizationRequestInput!): AuthorizationResponseDto!
+  getAuthorizationHistory(userId: String, resourceId: String, limit: Float = 100, offset: Float = 0): [AuthorizationLogDto!]!
+  validateToken(token: String!): TokenValidationDto!
+  validateTokenEnriched(token: String!): EnrichedTokenValidationDto!
+  getUserInfo(userId: String!): UserInfoDto
+  getUserRoles(userId: String!): [String!]!
+  testRedisConnection: ConnectionTestDto!
+  testKeycloakConnection: ConnectionTestDto!
+  getAuthenticationHistory(userId: String, limit: Float = 100, offset: Float = 0): [AuthenticationLogDto!]!
+  isUserOnline(userId: String!): Boolean!
+  getAuthenticationStats: ConnectionTestDto!
+}
+
+input AuthorizationRequestInput {
+  """Informations sur l'utilisateur"""
+  user: UserInput!
+
+  """Informations sur la ressource"""
+  resource: ResourceInput!
+
+  """Action demandée"""
+  action: String!
+
+  """Contexte de la demande"""
+  context: ContextInput
+}
+
+input UserInput {
+  """Identifiant de l'utilisateur"""
+  id: ID!
+
+  """Rôles de l'utilisateur"""
+  roles: [String!]!
+
+  """IDs des organisations de l'utilisateur"""
+  organization_ids: [String!]
+
+  """État de l'utilisateur"""
+  state: String
+
+  """Attributs de l'utilisateur"""
+  attributes: UserAttributesInput
+}
+
+input UserAttributesInput {
+  """Département de l'utilisateur"""
+  department: String
+
+  """Niveau d'habilitation"""
+  clearanceLevel: Float
+
+  """Date d'expiration du contrat"""
+  contractExpiryDate: String
+
+  """ID du manager"""
+  managerId: String
+
+  """Attributs supplémentaires"""
+  additionalAttributes: JSONObject
+}
+
+input ResourceInput {
+  """Identifiant de la ressource"""
+  id: ID!
+
+  """Type de ressource"""
+  type: String!
+
+  """Identifiant du propriétaire"""
+  owner_id: String
+
+  """Identifiant de l'organisation"""
+  organization_id: String
+
+  """Attributs de la ressource"""
+  attributes: ResourceAttributesInput
+}
+
+input ResourceAttributesInput {
+  """Indique si la ressource est officielle"""
+  isOfficial: Boolean
+
+  """Département associé à la ressource"""
+  department: String
+
+  """Indique si la ressource est confidentielle"""
+  confidential: Boolean
+
+  """Niveau d'habilitation requis"""
+  requiredClearance: Float
+
+  """État actuel de la ressource"""
+  state: String
+
+  """État cible de la ressource"""
+  targetState: String
+
+  """Attributs supplémentaires"""
+  additionalAttributes: JSONObject
+}
+
+input ContextInput {
+  """Adresse IP"""
+  ip: String
+
+  """Indique si la demande est effectuée pendant les heures de travail"""
+  businessHours: Boolean
+
+  """Date courante"""
+  currentDate: String
+
+  """Score de risque"""
+  riskScore: Float
+
+  """Structure hiérarchique de management"""
+  managementHierarchy: JSONObject
+
+  """Informations contextuelles supplémentaires"""
+  additionalContext: JSONObject
+}
+
+type Mutation {
+  login(input: LoginInputDto!): LoginResponseDto!
+  refreshToken(input: RefreshTokenInputDto!): LoginResponseDto!
+  getClientCredentialsToken: LoginResponseDto!
+  invalidateUserCache(userId: String!): Boolean!
+  logout(token: String!): Boolean!
+}
+
+input LoginInputDto {
+  username: String!
+  password: String!
+}
+
+input RefreshTokenInputDto {
+  refreshToken: String!
+}
